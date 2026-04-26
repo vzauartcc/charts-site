@@ -1,0 +1,23 @@
+{
+  "name": "chart-site",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
+    "serve": "npx serve .",
+    "build": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
+    "test:renovate": "npx --yes --package renovate -- renovate-config-validator"
+  },
+  "keywords": [],
+  "author": "Chicago ARTCC",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vzauartcc/charts-site"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.4",
+    "tailwindcss": "^4.2.4"
+  }
+}

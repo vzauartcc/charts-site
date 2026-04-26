@@ -1,0 +1,221 @@
+<!doctype html>
+<html class="html h-full" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ZAU Charts</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./dist/output.css" />
+  </head>
+  <body class="body h-full flex flex-col">
+    <h1 id="loading" style="font-weight: bolder; font-size: xx-large">
+      Loading . . .
+    </h1>
+    <div>
+      <nav class="nav flex items-center" id="navbar"></nav>
+    </div>
+    <div id="content" class="flex flex-row flex-1 min-h-0">
+      <div id="chartPicker" class="w-1/3 h-full overflow-y-auto"></div>
+      <div class="w-2/3 h-full">
+        <object
+          data="about:blank"
+          type="application/pdf"
+          id="pdfViewer"
+          class="hidden w-full h-full"
+        ></object>
+      </div>
+    </div>
+    <script>
+      const configuration = {
+        Bravo: ["KORD", "KMDW"],
+        Charlie: [
+          "KCID",
+          "KCMI",
+          "KFWA",
+          "KGRR",
+          "KMKE",
+          "KMLI",
+          "KMSN",
+          "KPIA",
+          "KSBN",
+        ],
+        Delta: [
+          "KARR",
+          "KAZO",
+          "KBMI",
+          "KBTL",
+          "KDBQ",
+          "KDEC",
+          "KDPA",
+          "KEKM",
+          "KENW",
+          "KGUS",
+          "KGYY",
+          "KJVL",
+          "KLAF",
+          "KLOT",
+          "KMKG",
+          "KMWC",
+          "KOSH",
+          "KPWK",
+          "KRFD",
+          "KUES",
+          "KUGN",
+          "KVOK",
+        ],
+      };
+
+      function generateAirportTabs() {
+        configuration.Bravo.forEach((a) => {
+          const btn = document.createElement("button");
+          btn.classList = "airport-bravo tablink";
+          btn.innerHTML = a;
+          btn.onclick = (e) => openpage(a, e.currentTarget);
+
+          document.getElementById("navbar").appendChild(btn);
+        });
+
+        configuration.Charlie.forEach((a) => {
+          const btn = document.createElement("button");
+          btn.classList = "airport-charlie tablink";
+          btn.innerHTML = a;
+          btn.onclick = (e) => openpage(a, e.currentTarget);
+
+          document.getElementById("navbar").appendChild(btn);
+        });
+
+        configuration.Delta.forEach((a) => {
+          const btn = document.createElement("button");
+          btn.classList = "airport-delta tablink";
+          btn.innerHTML = a;
+          btn.onclick = (e) => openpage(a, e.currentTarget);
+
+          document.getElementById("navbar").appendChild(btn);
+        });
+      }
+
+      async function generateContentSection() {
+        const allAirports = [
+          ...configuration.Bravo,
+          ...configuration.Charlie,
+          ...configuration.Delta,
+        ];
+
+        // let host = "";
+        // switch (window.location.hostname) {
+        //   case "zauartcc.org":
+        //     host = "https://api.zauartcc.org";
+        //     break;
+        //   case "staging.zauartcc.org":
+        //     host = "https://devapi.zauartcc.org";
+        //     break;
+        //   default:
+        //     host = "http://localhost:3000";
+        //     break;
+        // }
+
+        // const response = await fetch(
+        //   `${host}/charts?apt=${allAirports.join(",")}`,
+        // );
+
+          const response = await fetch(`https://api-v2.aviationapi.com/v2/charts/many/?airac=0&airport=${allAirports.join('&airport=')}`)
+        const data = await response.json();
+
+        document.getElementById("loading").classList.add("hidden");
+
+        generateAirportTabs();
+        data.forEach((airport) => {
+          const ctr = document.createElement("div");
+          ctr.id = airport.airport_data.icao_ident;
+          ctr.classList =
+            "tabcontent flex flex-wrap justify-start items-start hidden";
+          const charts = new Set();
+          Object.keys(airport.charts).forEach((section) => {
+            const allCharts = airport.charts[section];
+
+            allCharts.forEach((chart) => {
+              if (charts.has(chart.pdf_url)) {
+                console.warn("skipping duplicate entry", chart);
+                return;
+              }
+
+              charts.add(chart.pdf_url);
+              const chartDiv = document.createElement("div");
+              chartDiv.id = `${airport.faa_ident}_${chart.chart_name}`.replace(
+                " ",
+                "-",
+              );
+              chartDiv.classList = `chartbutton ${getChartButton(chart.chart_name, section)}`;
+              chartDiv.onclick = (e) => openpdf(chart.pdf_url, e.currentTarget);
+              chartDiv.innerHTML = chart.chart_name;
+              ctr.appendChild(chartDiv);
+            });
+          });
+          document.getElementById("chartPicker").appendChild(ctr);
+        });
+      }
+
+      function getChartButton(code, chartType) {
+        switch (code) {
+          case "AIRPORT DIAGRAM":
+            return "chartbutton-apd";
+          case "TAKEOFF MINIMUMS":
+            return "chartbutton-min";
+          case "LAHSO":
+            return "chartbutton-lah";
+          case "HOT SPOT":
+            return "chartbutton-hot";
+        }
+
+        switch (chartType) {
+          case "arrival":
+            return "chartbutton-star";
+          case "approach":
+            return "chartbutton-iap";
+          case "departure":
+            return "chartbutton-dp";
+          case "DAU":
+            return "chartbutton-dau";
+          default:
+            return "chartbutton-dau";
+        }
+      }
+
+      generateContentSection();
+
+      function openpage(page, elmnt) {
+        document.getElementById("pdfViewer").classList.add("hidden");
+
+        // Hide all elements with class="tabcontent" by default
+        document.querySelectorAll(".tabcontent").forEach((el) => {
+          el.classList.add("hidden");
+        });
+
+        // Set all tabs to inactive
+        document.querySelectorAll(".tablink").forEach((el) => {
+          el.classList.remove("tablink-active");
+        });
+
+        // Set current tab to active and unhide content
+        elmnt.classList.add(".tablink-active");
+        document.getElementById(page).classList.remove("hidden");
+      }
+
+      function openpdf(pdfUrl, elmnt) {
+        const viewer = document.getElementById("pdfViewer");
+
+        document.querySelectorAll(".chartbutton").forEach((el) => {
+          el.classList.remove("chartbutton-active");
+        });
+        elmnt.classList.add("chartbutton-active");
+
+        // Set pdfViewer
+        viewer.setAttribute("data", pdfUrl);
+        viewer.classList.remove("hidden");
+
+        viewer.parentElement.classList.add("bg-white");
+      }
+    </script>
+  </body>
+</html>
